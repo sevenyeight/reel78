@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>ReelLog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --water:#0a2a3a; --deep:#061820; --surface:#0f3346; --murk:#143d52;
+  --sand:#c8a96e; --hook:#e8943a; --line:#7ecbde; --gill:#2a8fa8;
+  --algae:#5a9e62; --blood:#c44a3a; --muted:#6a9ab0;
+  --text:#d4ecf5; --card:#0d2f40; --border:#1a4a60; --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Libre Baskerville',Georgia,serif;background:var(--deep);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 10%,rgba(14,82,120,.35) 0%,transparent 50%),radial-gradient(ellipse at 80% 90%,rgba(6,40,60,.5) 0%,transparent 50%),linear-gradient(180deg,#061820 0%,#0a2a3a 40%,#061820 100%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 38px,rgba(126,203,222,.03) 38px,rgba(126,203,222,.03) 40px);pointer-events:none;z-index:0;animation:drift 8s linear infinite}
+@keyframes drift{from{transform:translateY(0)}to{transform:translateY(40px)}}
+
+.app-header{position:sticky;top:0;z-index:100;padding:12px 16px 10px;background:rgba(6,24,32,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.app-logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--sand);text-shadow:0 0 20px rgba(200,169,110,.4);line-height:1}
+.app-logo span{color:var(--hook)}
+.app-tagline{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:1px}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+#sync-status{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted)}
+.settings-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--muted);cursor:pointer}
+
+.nav-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(6,24,32,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;border:none;background:none;cursor:pointer;color:var(--muted);transition:color .2s;font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.5px;text-transform:uppercase;gap:3px}
+.nav-btn .ni{font-size:19px;line-height:1}
+.nav-btn.active{color:var(--hook)}
+.nav-btn.active .ni{filter:drop-shadow(0 0 4px var(--hook))}
+
+.panel{display:none;padding:16px 16px 100px;position:relative;z-index:1}
+.panel.active{display:block}
+.sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.sec-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--sand)}
+.sec-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+
+input,textarea,select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'Libre Baskerville',serif;font-size:13px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+input:focus,textarea:focus,select:focus{border-color:var(--gill)}
+textarea{resize:none}
+select option{background:var(--surface)}
+label{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:5px}
+.form-row{margin-bottom:12px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;transition:all .2s;white-space:nowrap}
+.btn-hook{background:var(--hook);color:#fff}
+.btn-gill{background:var(--gill);color:#fff}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:active{background:var(--murk)}
+.btn-full{width:100%}
+.btn-sm{padding:6px 12px;font-size:9px}
+.btn-danger{background:transparent;border:1px solid var(--blood);color:var(--blood)}
+
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tag{padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface);font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);cursor:pointer;transition:all .15s}
+.tag.sel{background:var(--hook);border-color:var(--hook);color:#fff}
+
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 8px;text-align:center}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--sand);line-height:1}
+.stat-lbl{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted);margin-top:2px}
+
+.catch-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;animation:fadeUp .3s ease}
+.catch-photo{width:100%;height:160px;object-fit:cover;display:block}
+.catch-no-photo{width:100%;height:70px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--muted)}
+.catch-body{padding:12px}
+.catch-species{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--sand)}
+.catch-meta{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);margin:4px 0 8px;display:flex;flex-wrap:wrap;gap:6px}
+.csm{background:var(--surface);border-radius:4px;padding:2px 6px;color:var(--line)}
+.catch-notes{font-size:12px;color:var(--muted);line-height:1.6;font-style:italic}
+.catch-actions{display:flex;gap:6px;margin-top:10px}
+
+.spot-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.spot-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--line)}
+.spot-type{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:6px}
+
+.gear-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.gear-icon{font-size:20px;width:28px;text-align:center;flex-shrink:0}
+.gear-info{flex:1;min-width:0}
+.gear-name{font-size:13px;font-weight:700}
+.gear-detail{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px}
+.gear-loc{font-family:'Space Mono',monospace;font-size:9px;color:var(--hook);background:rgba(232,148,58,.12);padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+
+.tab-bar{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s}
+.tab.active{background:var(--gill);border-color:var(--gill);color:#fff}
+
+.photo-area{border:2px dashed var(--border);border-radius:8px;padding:18px;text-align:center;cursor:pointer;margin-bottom:10px;font-family:'Space Mono',monospace;font-size:10px;color:var(--muted)}
+#photo-preview{width:100%;border-radius:6px;display:none;margin-bottom:6px}
+
+.loc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.loc-opt{border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer;background:var(--surface);transition:all .15s}
+.loc-opt.sel{border-color:var(--hook);background:rgba(232,148,58,.1)}
+.li{font-size:20px;display:block;margin-bottom:3px}
+.ln{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)}
+
+.res-link{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text)}
+.res-link:active{border-color:var(--gill)}
+.res-thumb{font-size:22px;width:34px;text-align:center;flex-shrink:0}
+.res-title{font-size:12px;font-weight:700;color:var(--line)}
+.res-src{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px}
+
+.tech-block{padding:14px 0;border-bottom:1px solid var(--border)}
+.tech-name{font-weight:700;font-size:14px;margin-bottom:6px;color:var(--sand)}
+.tech-body{font-size:12px;color:var(--muted);line-height:1.8}
+.tech-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.tech-tag{font-family:'Space Mono',monospace;font-size:8px;padding:2px 8px;border-radius:10px;background:var(--surface);color:var(--line)}
+
+.modal-bg{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex;animation:fadeIn .2s ease}
+.modal{background:var(--water);border:1px solid var(--border);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px 18px;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));max-height:90dvh;overflow-y:auto;animation:slideUp .25s ease}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--sand)}
+.modal-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px}
+.result-label{font-family:'Space Mono',monospace;font-size:9px;color:var(--hook);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+
+.empty{text-align:center;padding:40px 20px;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);line-height:2}
+.empty-icon{font-size:38px;display:block;margin-bottom:10px}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div>
+    <div class="app-logo">Reel<span>Log</span></div>
+    <div class="app-tagline">Southern California &middot; Field Notes</div>
+  </div>
+  <div class="hdr-right">
+    <button class="settings-btn" onclick="openSettings()">&#9881; Settings</button>
+    <span id="sync-status">tap settings to sync</span>
+  </div>
+</header>
+
+<!-- LOG -->
+<div id="panel-log" class="panel active">
+  <div class="sec-head"><div class="sec-title">Catch Log</div><div class="sec-sub">your catches</div></div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">catches</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-species">0</div><div class="stat-lbl">species</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-sessions">0</div><div class="stat-lbl">sessions</div></div>
+  </div>
+  <button class="btn btn-hook btn-full" onclick="openModal('log-modal')" style="margin-bottom:14px">+ Log a Catch</button>
+  <div id="catch-list"><div class="empty"><span class="empty-icon">&#127907;</span>No catches yet.<br>Tap + to log your first one.</div></div>
+</div>
+
+<!-- SPOTS -->
+<div id="panel-spots" class="panel">
+  <div class="sec-head"><div class="sec-title">My Spots</div><div class="sec-sub">pins &amp; intel</div></div>
+  <button class="btn btn-outline btn-full" onclick="openModal('spot-modal')" style="margin-bottom:14px">+ Add Spot</button>
+  <div id="spot-list"></div>
+</div>
+
+<!-- GEAR -->
+<div id="panel-gear" class="panel">
+  <div class="sec-head"><div class="sec-title">Gear Locker</div><div class="sec-sub">tackle &amp; kit</div></div>
+  <button class="btn btn-outline btn-full" onclick="openModal('gear-modal')" style="margin-bottom:14px">+ Add Gear</button>
+  <div class="tab-bar" id="gear-tabs">
+    <div class="tab active" onclick="filterGear(this,'all')">All</div>
+    <div class="tab" onclick="filterGear(this,'rod')">Rods</div>
+    <div class="tab" onclick="filterGear(this,'reel')">Reels</div>
+    <div class="tab" onclick="filterGear(this,'lure')">Lures</div>
+    <div class="tab" onclick="filterGear(this,'line')">Line</div>
+    <div class="tab" onclick="filterGear(this,'terminal')">Terminal</div>
+    <div class="tab" onclick="filterGear(this,'other')">Other</div>
+  </div>
+  <div id="gear-list"></div>
+</div>
+
+<!-- INTEL -->
+<div id="panel-intel" class="panel">
+  <div class="sec-head"><div class="sec-title">Intel</div><div class="sec-sub">techniques &amp; resources</div></div>
+  <div class="tab-bar" id="intel-tabs">
+    <div class="tab active" onclick="switchIntelTab(this,'itab-tech')">Techniques</div>
+    <div class="tab" onclick="switchIntelTab(this,'itab-links')">Resources</div>
+  </div>
+
+  <div id="itab-tech">
+    <div class="tech-block">
+      <div class="tech-name">Drop Shot</div>
+      <div class="tech-body">Palomar knot leaving a tag end; weight hangs 6-18" below. Keep semi-slack and shake with your wrist. Let it sit — most bites come on the pause. Best in cold/pressured water 10-25ft deep.</div>
+      <div class="tech-tags"><span class="tech-tag">Bass</span><span class="tech-tag">Finesse</span><span class="tech-tag">Clear water</span><span class="tech-tag">Castaic</span><span class="tech-tag">Pyramid</span></div>
+    </div>
+    <div class="tech-block">
+      <div class="tech-name">Swim Bait</div>
+      <div class="tech-body">Steady retrieve at target depth. Match head weight to depth: 1/4oz shallows, 1oz+ for 20ft+. Vary speed until you find the trigger. White/silver in clear water, darker in murky. Countdown to depth before retrieving.</div>
+      <div class="tech-tags"><span class="tech-tag">Striped Bass</span><span class="tech-tag">Largemouth</span><span class="tech-tag">Open water</span><span class="tech-tag">Castaic</span></div>
+    </div>
+    <div class="tech-block">
+      <div class="tech-name">Topwater</div>
+      <div class="tech-body">Most effective dawn/dusk and overcast days. Walk the dog with slack-line twitches. Pause after a blow-up — bass often come back. Use 15lb+ line to horse fish away from cover fast.</div>
+      <div class="tech-tags"><span class="tech-tag">Bass</span><span class="tech-tag">Dawn</span><span class="tech-tag">Dusk</span><span class="tech-tag">Shallow structure</span></div>
+    </div>
+    <div class="tech-block">
+      <div class="tech-name">Texas Rig</div>
+      <div class="tech-body">Bullet weight above a worm hook. Weedless — punch through grass, brush, rocks. Flip into tight cover. Slow drag along bottom, feel for taps. 1/2-1oz for flipping, 3/16oz for open water.</div>
+      <div class="tech-tags"><span class="tech-tag">Bass</span><span class="tech-tag">Cover</span><span class="tech-tag">Flipping</span></div>
+    </div>
+    <div class="tech-block">
+      <div class="tech-name">Pier / Bottom Fishing</div>
+      <div class="tech-body">Sliding sinker rig with 2-3ft leader. Squid, cut anchovy, and pile worms all work at Malibu/SM Pier. Fish tide changes — first two hours of incoming or outgoing. Drop near pilings for halibut.</div>
+      <div class="tech-tags"><span class="tech-tag">Halibut</span><span class="tech-tag">Perch</span><span class="tech-tag">Malibu Pier</span><span class="tech-tag">Tides</span></div>
+    </div>
+    <div class="tech-block">
+      <div class="tech-name">Surf Casting</div>
+      <div class="tech-body">Fish the troughs and cuts between sandbars. High-low rig with sand crabs or bloodworms for perch. Corbina take sand crabs in the wash at low tide. Cast past the break, retrieve slowly through the trough.</div>
+      <div class="tech-tags"><span class="tech-tag">Corbina</span><span class="tech-tag">Perch</span><span class="tech-tag">Surf</span><span class="tech-tag">Sand crabs</span></div>
+    </div>
+    <div class="tech-block">
+      <div class="tech-name">Jig</div>
+      <div class="tech-body">Lift-and-fall along structure. Let it hit bottom, pop 1-2ft, let fall on semi-slack line — bites on the fall. Match color to clarity: natural in clear, chartreuse in murky. Great for calico bass in kelp.</div>
+      <div class="tech-tags"><span class="tech-tag">Calico Bass</span><span class="tech-tag">Kelp</span><span class="tech-tag">Structure</span></div>
+    </div>
+  </div>
+
+  <div id="itab-links" style="display:none">
+    <p style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:14px;line-height:1.8">SoCal reports, tools &amp; video guides</p>
+    <a class="res-link" href="https://www.bdoutdoors.com/" target="_blank"><div class="res-thumb">&#128225;</div><div><div class="res-title">BD Outdoors</div><div class="res-src">Live SoCal fishing reports &amp; forums</div></div></a>
+    <a class="res-link" href="https://tides.net/california/" target="_blank"><div class="res-thumb">&#127754;</div><div><div class="res-title">California Tides</div><div class="res-src">Real-time tide charts for the SoCal coast</div></div></a>
+    <a class="res-link" href="https://www.weather.gov/lox/" target="_blank"><div class="res-thumb">&#9928;&#65039;</div><div><div class="res-title">NWS LA Marine Forecast</div><div class="res-src">Coastal &amp; offshore weather, wind, swell</div></div></a>
+    <a class="res-link" href="https://www.youtube.com/@WesternBassGuide" target="_blank"><div class="res-thumb">&#9654;&#65039;</div><div><div class="res-title">Western Bass Guide</div><div class="res-src">YouTube &middot; SoCal lakes &amp; reservoirs</div></div></a>
+    <a class="res-link" href="https://www.youtube.com/@BassResource" target="_blank"><div class="res-thumb">&#9654;&#65039;</div><div><div class="res-title">Bass Resource TV</div><div class="res-src">YouTube &middot; Techniques &amp; lure breakdowns</div></div></a>
+    <a class="res-link" href="https://www.takemefishing.org/fish-finder/" target="_blank"><div class="res-thumb">&#128506;&#65039;</div><div><div class="res-title">Fish Finder Map</div><div class="res-src">Nationwide spot finder tool</div></div></a>
+    <a class="res-link" href="https://wildlife.ca.gov/Licensing/Fishing" target="_blank"><div class="res-thumb">&#127991;&#65039;</div><div><div class="res-title">CA Fishing License</div><div class="res-src">CDFW &middot; Buy or renew your license</div></div></a>
+    <a class="res-link" href="https://www.fishingbooker.com/blog/southern-california-fishing/" target="_blank"><div class="res-thumb">&#128214;</div><div><div class="res-title">SoCal Fishing Guide</div><div class="res-src">Spots, seasons &amp; species overview</div></div></a>
+  </div>
+</div>
+
+<nav class="nav-bar">
+  <button class="nav-btn active" onclick="switchPanel('log',this)"><span class="ni">&#128203;</span>Log</button>
+  <button class="nav-btn" onclick="switchPanel('spots',this)"><span class="ni">&#128205;</span>Spots</button>
+  <button class="nav-btn" onclick="switchPanel('gear',this)"><span class="ni">&#127890;</span>Gear</button>
+  <button class="nav-btn" onclick="switchPanel('intel',this)"><span class="ni">&#128218;</span>Intel</button>
+</nav>
+
+<!-- CATCH MODAL -->
+<div class="modal-bg" id="log-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Log Catch</div><button class="modal-close" onclick="closeModal('log-modal')">&#x2715;</button></div>
+    <div class="form-row"><label>Species *</label><input type="text" id="c-species" placeholder="Largemouth Bass, Halibut, Calico..."></div>
+    <div class="form-grid">
+      <div><label>Length (in)</label><input type="number" id="c-length" placeholder="14"></div>
+      <div><label>Weight (lbs)</label><input type="number" step="0.1" id="c-weight" placeholder="2.5"></div>
+    </div>
+    <div class="form-grid">
+      <div><label>Date</label><input type="date" id="c-date"></div>
+      <div><label>Time</label><input type="time" id="c-time"></div>
+    </div>
+    <div class="form-row"><label>Location / Spot</label><input type="text" id="c-location" placeholder="Malibu Pier, Castaic Lake..."></div>
+    <div class="form-row"><label>Lure / Bait</label><input type="text" id="c-lure" placeholder="Robo Worm, Swimbait, Squid..."></div>
+    <div class="form-row">
+      <label>Technique</label>
+      <select id="c-technique">
+        <option value="">-- select --</option>
+        <option>Drop Shot</option><option>Swim Bait</option><option>Topwater</option>
+        <option>Texas Rig</option><option>Carolina Rig</option><option>Jig</option>
+        <option>Spinnerbait</option><option>Crankbait</option><option>Fly</option>
+        <option>Surf Casting</option><option>Pier / Bottom</option><option>Live Bait</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Conditions</label>
+      <div class="tag-row" id="cond-tags">
+        <span class="tag" onclick="tog(this)">Clear</span><span class="tag" onclick="tog(this)">Murky</span>
+        <span class="tag" onclick="tog(this)">Calm</span><span class="tag" onclick="tog(this)">Choppy</span>
+        <span class="tag" onclick="tog(this)">Sunny</span><span class="tag" onclick="tog(this)">Overcast</span>
+        <span class="tag" onclick="tog(this)">Morning</span><span class="tag" onclick="tog(this)">Dusk</span>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Photo</label>
+      <input type="file" id="c-photo" accept="image/*" capture="environment" style="display:none" onchange="prevPhoto(this)">
+      <div class="photo-area" onclick="document.getElementById('c-photo').click()">
+        <img id="photo-preview" alt=""><span id="photo-ph">&#128247; Tap to add photo</span>
+      </div>
+    </div>
+    <div class="form-row"><label>Notes</label><textarea id="c-notes" rows="2" placeholder="Depth, structure, what triggered the bite..."></textarea></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-hook" style="flex:1" onclick="saveCatch()">Save Catch</button>
+      <button class="btn btn-outline" onclick="closeModal('log-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SPOT MODAL -->
+<div class="modal-bg" id="spot-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add Spot</div><button class="modal-close" onclick="closeModal('spot-modal')">&#x2715;</button></div>
+    <div class="form-row"><label>Spot Name *</label><input type="text" id="s-name" placeholder="East Cove, Kelp Edge, Submerged Trees..."></div>
+    <div class="form-row"><label>Address / Location</label><input type="text" id="s-address" placeholder="Castaic Lake, CA"></div>
+    <div class="form-row">
+      <label>Water Type</label>
+      <div class="tag-row" id="s-type-row">
+        <span class="tag" onclick="pick(this,'s-type-row')">Freshwater</span>
+        <span class="tag" onclick="pick(this,'s-type-row')">Saltwater</span>
+        <span class="tag" onclick="pick(this,'s-type-row')">Surf</span>
+        <span class="tag" onclick="pick(this,'s-type-row')">Pier</span>
+        <span class="tag" onclick="pick(this,'s-type-row')">Reservoir</span>
+      </div>
+    </div>
+    <div class="form-row"><label>Target Species</label><input type="text" id="s-species" placeholder="Bass, Halibut, Yellowtail..."></div>
+    <div class="form-row">
+      <label>Best Conditions</label>
+      <div class="tag-row" id="s-cond-row">
+        <span class="tag" onclick="tog(this)">Dawn</span><span class="tag" onclick="tog(this)">Dusk</span>
+        <span class="tag" onclick="tog(this)">High Tide</span><span class="tag" onclick="tog(this)">Low Tide</span>
+        <span class="tag" onclick="tog(this)">Spring</span><span class="tag" onclick="tog(this)">Summer</span>
+        <span class="tag" onclick="tog(this)">Fall</span><span class="tag" onclick="tog(this)">Overcast</span>
+      </div>
+    </div>
+    <div class="form-row"><label>Notes / Intel</label><textarea id="s-notes" rows="2" placeholder="Submerged structure at 15ft, bass hold near the point in summer..."></textarea></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-hook" style="flex:1" onclick="saveSpot()">Save Spot</button>
+      <button class="btn btn-outline" onclick="closeModal('spot-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- GEAR MODAL -->
+<div class="modal-bg" id="gear-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add Gear</div><button class="modal-close" onclick="closeModal('gear-modal')">&#x2715;</button></div>
+    <div class="form-row"><label>Item Name *</label><input type="text" id="g-name" placeholder="Ugly Stik 7ft, Shimano Stradic, Robo Worm..."></div>
+    <div class="form-row">
+      <label>Category</label>
+      <div class="tag-row" id="g-cat-row">
+        <span class="tag" onclick="pick(this,'g-cat-row')" data-val="rod">Rod</span>
+        <span class="tag" onclick="pick(this,'g-cat-row')" data-val="reel">Reel</span>
+        <span class="tag" onclick="pick(this,'g-cat-row')" data-val="lure">Lure</span>
+        <span class="tag" onclick="pick(this,'g-cat-row')" data-val="line">Line</span>
+        <span class="tag" onclick="pick(this,'g-cat-row')" data-val="terminal">Terminal</span>
+        <span class="tag" onclick="pick(this,'g-cat-row')" data-val="other">Other</span>
+      </div>
+    </div>
+    <div class="form-row"><label>Details</label><input type="text" id="g-detail" placeholder="10lb braid, #3 hook, green pumpkin..."></div>
+    <div class="form-row">
+      <label>Storage Location</label>
+      <div class="loc-grid" id="loc-grid">
+        <div class="loc-opt" onclick="pickLoc(this,'Tackle Box')"><span class="li">&#129520;</span><span class="ln">Tackle Box</span></div>
+        <div class="loc-opt" onclick="pickLoc(this,'Backpack')"><span class="li">&#127890;</span><span class="ln">Backpack</span></div>
+        <div class="loc-opt" onclick="pickLoc(this,'Bag / Vest')"><span class="li">&#128092;</span><span class="ln">Bag / Vest</span></div>
+        <div class="loc-opt" onclick="pickLoc(this,'Car')"><span class="li">&#128663;</span><span class="ln">Car</span></div>
+        <div class="loc-opt" onclick="pickLoc(this,'Home')"><span class="li">&#127968;</span><span class="ln">Home</span></div>
+        <div class="loc-opt" onclick="pickLoc(this,'Other')"><span class="li">&#128230;</span><span class="ln">Other</span></div>
+      </div>
+      <input type="hidden" id="g-loc-val" value="">
+    </div>
+    <div class="form-row"><label>Notes</label><input type="text" id="g-notes" placeholder="Best for calico, keep with drop shot kit..."></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-hook" style="flex:1" onclick="saveGear()">Save Gear</button>
+      <button class="btn btn-outline" onclick="closeModal('gear-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-bg" id="settings-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Settings</div><button class="modal-close" onclick="closeModal('settings-modal')">&#x2715;</button></div>
+    <div class="result-label">GitHub Gist Sync</div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px">
+      Syncs all your catches, spots, and gear across every device automatically.<br><br>
+      To get a token: <strong style="color:var(--line)">GitHub &rarr; Settings &rarr; Developer Settings &rarr; Personal Access Tokens (classic) &rarr; Generate new &rarr; check gist only &rarr; copy</strong>
+    </p>
+    <div class="form-row"><label>GitHub Token</label><input type="password" id="gh-token-input" placeholder="ghp_..."></div>
+    <div id="settings-msg" style="font-family:'Space Mono',monospace;font-size:9px;min-height:14px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-hook" style="flex:1" onclick="saveToken()">Connect &amp; Sync</button>
+      <button class="btn btn-danger btn-sm" onclick="disconnectToken()">Disconnect</button>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin-bottom:12px">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline btn-sm" style="flex:1" onclick="manualPush()">&#8635; Push to cloud</button>
+      <button class="btn btn-outline btn-sm" style="flex:1" onclick="manualPull()">&#8645; Pull from cloud</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// STORAGE
+const LS = {
+  get: k => { try { return JSON.parse(localStorage.getItem('rl_' + k) || 'null'); } catch { return null; } },
+  set: (k, v) => localStorage.setItem('rl_' + k, JSON.stringify(v))
+};
+
+// GIST
+const GFILE = 'reellog_data.json';
+let ghToken = LS.get('ghToken') || null;
+let gistId  = LS.get('gistId')  || null;
+let saveTimer = null;
+
+function setSS(msg, color) {
+  const a = document.getElementById('sync-status');
+  const b = document.getElementById('settings-msg');
+  if (a) { a.textContent = msg; a.style.color = color || 'var(--muted)'; }
+  if (b) { b.textContent = msg; b.style.color = color || 'var(--muted)'; }
+}
+
+async function ghReq(method, path, body) {
+  const r = await fetch('https://api.github.com' + path, {
+    method,
+    headers: {
+      'Authorization': 'token ' + ghToken,
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github.v3+json'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!r.ok) throw new Error('GitHub ' + r.status);
+  return r.json();
+}
+
+async function pushToGist() {
+  if (!ghToken) return;
+  const content = JSON.stringify({ catches, spots, gear }, null, 2);
+  try {
+    if (!gistId) {
+      const res = await ghReq('POST', '/gists', {
+        description: 'ReelLog data',
+        public: false,
+        files: { [GFILE]: { content } }
+      });
+      gistId = res.id;
+      LS.set('gistId', gistId);
+    } else {
+      await ghReq('PATCH', '/gists/' + gistId, { files: { [GFILE]: { content } } });
+    }
+    const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setSS('synced ' + t, 'var(--algae)');
+  } catch(e) {
+    setSS('sync failed - check token', 'var(--blood)');
+  }
+}
+
+async function pullFromGist() {
+  if (!ghToken) return false;
+  setSS('loading from cloud...', 'var(--line)');
+  try {
+    let raw = null;
+    if (gistId) {
+      const res = await ghReq('GET', '/gists/' + gistId);
+      raw = res.files[GFILE] && res.files[GFILE].content;
+    }
+    if (!raw) {
+      // search for existing gist
+      const list = await ghReq('GET', '/gists?per_page=50');
+      const found = list.find(g => g.files[GFILE]);
+      if (found) {
+        gistId = found.id;
+        LS.set('gistId', gistId);
+        const res = await ghReq('GET', '/gists/' + gistId);
+        raw = res.files[GFILE] && res.files[GFILE].content;
+      }
+    }
+    if (raw) {
+      const d = JSON.parse(raw);
+      catches = d.catches || [];
+      spots   = d.spots   || defaultSpots();
+      gear    = d.gear    || defaultGear();
+      LS.set('catches', catches);
+      LS.set('spots', spots);
+      LS.set('gear', gear);
+      const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setSS('synced ' + t, 'var(--algae)');
+      return true;
+    }
+    setSS('connected - no data yet', 'var(--muted)');
+  } catch(e) {
+    setSS('load failed - using local data', 'var(--hook)');
+  }
+  return false;
+}
+
+function scheduleSave() {
+  LS.set('catches', catches);
+  LS.set('spots', spots);
+  LS.set('gear', gear);
+  if (!ghToken) return;
+  setSS('saving...', 'var(--line)');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(pushToGist, 2000);
+}
+
+async function saveToken() {
+  const t = document.getElementById('gh-token-input').value.trim();
+  if (!t) { setSS('paste your token first', 'var(--hook)'); return; }
+  ghToken = t;
+  gistId = null;
+  LS.set('ghToken', ghToken);
+  LS.set('gistId', null);
+  document.getElementById('gh-token-input').value = '';
+  document.getElementById('gh-token-input').placeholder = 'ghp_... (saved)';
+  const loaded = await pullFromGist();
+  if (!loaded) await pushToGist();
+  renderAll();
+}
+
+function disconnectToken() {
+  if (!confirm('Disconnect sync? Your local data stays.')) return;
+  ghToken = null; gistId = null;
+  LS.set('ghToken', null); LS.set('gistId', null);
+  setSS('not connected', 'var(--muted)');
+  closeModal('settings-modal');
+}
+
+async function manualPush() { await pushToGist(); }
+async function manualPull() {
+  const loaded = await pullFromGist();
+  if (loaded) renderAll();
+}
+
+function openSettings() {
+  if (ghToken) document.getElementById('gh-token-input').placeholder = 'ghp_... (already connected)';
+  openModal('settings-modal');
+}
+
+// DATA
+let catches = LS.get('catches') || [];
+let spots   = LS.get('spots')   || defaultSpots();
+let gear    = LS.get('gear')    || defaultGear();
+let gearFilter = 'all';
+
+function defaultSpots() {
+  return [
+    { id:1, name:'Castaic Lake - North Shore', address:'Castaic Lake, CA', type:'Reservoir', species:'Largemouth Bass, Striped Bass', conditions:'Dawn, Summer, Fall', notes:'Best at dawn near the inlet. Shad patterns work well in summer.', ts:Date.now() },
+    { id:2, name:'Malibu Pier', address:'23000 Pacific Coast Hwy, Malibu, CA', type:'Pier', species:'Halibut, Perch, Jacksmelt', conditions:'High Tide, Overcast', notes:'Bottom fish for halibut near the pilings. Incoming tide is key.', ts:Date.now() },
+    { id:3, name:'Pyramid Lake - Dam End', address:'Pyramid Lake, CA', type:'Reservoir', species:'Striped Bass, Trout', conditions:'Spring, Dusk', notes:'Stripers stacked here in spring. Swimbaits 15-20ft down.', ts:Date.now() }
+  ];
+}
+function defaultGear() {
+  return [
+    { id:1, name:'Medium-Heavy 7ft Spinning Rod', cat:'rod', detail:'Medium-Heavy, fast action', loc:'Car', notes:'All-around setup', ts:Date.now() },
+    { id:2, name:'Spinning Reel 2500', cat:'reel', detail:'8lb fluorocarbon', loc:'Car', notes:'', ts:Date.now() },
+    { id:3, name:'Robo Worm - Aarons Magic', cat:'lure', detail:'4.5in drop shot worm, natural green', loc:'Tackle Box', notes:'Go-to for finesse bass', ts:Date.now() },
+    { id:4, name:'Swimbait 4in Paddle Tail', cat:'lure', detail:'White/silver, 3/8oz head', loc:'Tackle Box', notes:'Shad imitation', ts:Date.now() },
+    { id:5, name:'10lb Braid + 8lb Fluoro Leader', cat:'line', detail:'Braid main, 2ft fluoro', loc:'Tackle Box', notes:'Drop shot setup', ts:Date.now() }
+  ];
+}
+
+// HELPERS
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function tog(el) { el.classList.toggle('sel'); }
+function pick(el, rowId) {
+  document.querySelectorAll('#' + rowId + ' .tag').forEach(t => t.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function pickLoc(el, val) {
+  document.querySelectorAll('#loc-grid .loc-opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('g-loc-val').value = val;
+}
+function selTags(rowId) {
+  return Array.from(document.querySelectorAll('#' + rowId + ' .tag.sel')).map(t => t.textContent.trim()).join(', ');
+}
+function selPick(rowId) {
+  const el = document.querySelector('#' + rowId + ' .tag.sel');
+  return el ? (el.dataset.val || el.textContent.trim()) : '';
+}
+
+// NAV
+function switchPanel(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function switchIntelTab(btn, id) {
+  document.querySelectorAll('#itab-tech,#itab-links').forEach(t => t.style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+  document.querySelectorAll('#intel-tabs .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+});
+
+// PHOTO
+function prevPhoto(inp) {
+  if (!inp.files[0]) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const img = document.getElementById('photo-preview');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('photo-ph').style.display = 'none';
+  };
+  r.readAsDataURL(inp.files[0]);
+}
+
+// CATCH
+function saveCatch() {
+  const species = document.getElementById('c-species').value.trim();
+  if (!species) { alert('Enter a species!'); return; }
+  const photo = document.getElementById('photo-preview').src;
+  catches.unshift({
+    id: Date.now(), species,
+    length: document.getElementById('c-length').value,
+    weight: document.getElementById('c-weight').value,
+    date:   document.getElementById('c-date').value,
+    time:   document.getElementById('c-time').value,
+    location: document.getElementById('c-location').value,
+    lure:   document.getElementById('c-lure').value,
+    technique: document.getElementById('c-technique').value,
+    conditions: selTags('cond-tags'),
+    notes:  document.getElementById('c-notes').value,
+    photo:  (photo && photo.startsWith('data:')) ? photo : null
+  });
+  scheduleSave(); renderCatches(); updateStats();
+  closeModal('log-modal'); clearLogForm();
+}
+function clearLogForm() {
+  ['c-species','c-length','c-weight','c-location','c-lure','c-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('c-technique').value = '';
+  document.getElementById('photo-preview').style.display = 'none';
+  document.getElementById('photo-ph').style.display = 'block';
+  document.querySelectorAll('#cond-tags .tag').forEach(t => t.classList.remove('sel'));
+}
+function deleteCatch(id) {
+  if (!confirm('Delete this catch?')) return;
+  catches = catches.filter(c => c.id !== id);
+  scheduleSave(); renderCatches(); updateStats();
+}
+function shareCatch(id) {
+  const c = catches.find(x => x.id === id); if (!c) return;
+  const lines = ['Catch: ' + c.species, c.length ? 'Length: ' + c.length + '"' : '', c.weight ? 'Weight: ' + c.weight + 'lbs' : '', c.location ? 'Spot: ' + c.location : '', c.lure ? 'Lure: ' + c.lure : '', c.notes || ''].filter(Boolean).join('\n');
+  if (navigator.share) navigator.share({ title: 'Catch', text: lines });
+  else navigator.clipboard.writeText(lines).then(() => alert('Copied to clipboard!'));
+}
+
+// SPOT
+function saveSpot() {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { alert('Enter a spot name!'); return; }
+  spots.push({
+    id: Date.now(), name,
+    address: document.getElementById('s-address').value,
+    type: selPick('s-type-row'),
+    species: document.getElementById('s-species').value,
+    conditions: selTags('s-cond-row'),
+    notes: document.getElementById('s-notes').value,
+    ts: Date.now()
+  });
+  scheduleSave(); renderSpots(); closeModal('spot-modal');
+  ['s-name','s-address','s-species','s-notes'].forEach(id => document.getElementById(id).value = '');
+  document.querySelectorAll('#spot-modal .tag').forEach(t => t.classList.remove('sel'));
+}
+function deleteSpot(id) {
+  if (!confirm('Delete this spot?')) return;
+  spots = spots.filter(s => s.id !== id);
+  scheduleSave(); renderSpots();
+}
+
+// GEAR
+function saveGear() {
+  const name = document.getElementById('g-name').value.trim();
+  if (!name) { alert('Enter item name!'); return; }
+  gear.push({
+    id: Date.now(), name,
+    cat: selPick('g-cat-row') || 'other',
+    detail: document.getElementById('g-detail').value,
+    loc: document.getElementById('g-loc-val').value,
+    notes: document.getElementById('g-notes').value,
+    ts: Date.now()
+  });
+  scheduleSave(); renderGear(); closeModal('gear-modal');
+  ['g-name','g-detail','g-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('g-loc-val').value = '';
+  document.querySelectorAll('#gear-modal .tag').forEach(t => t.classList.remove('sel'));
+  document.querySelectorAll('#loc-grid .loc-opt').forEach(o => o.classList.remove('sel'));
+}
+function deleteGear(id) {
+  if (!confirm('Remove gear?')) return;
+  gear = gear.filter(g => g.id !== id);
+  scheduleSave(); renderGear();
+}
+function filterGear(el, cat) {
+  gearFilter = cat;
+  document.querySelectorAll('#gear-tabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderGear();
+}
+
+// RENDER
+const GICONS = { rod:'🎣', reel:'⚙️', lure:'🪝', line:'〜', terminal:'🔗', other:'📦' };
+
+function renderCatches() {
+  const el = document.getElementById('catch-list');
+  if (!catches.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">🎣</span>No catches yet.<br>Tap + to log your first one.</div>'; return; }
+  el.innerHTML = catches.map(c => `
+    <div class="catch-card">
+      ${c.photo ? `<img class="catch-photo" src="${c.photo}" alt="">` : '<div class="catch-no-photo">🐟</div>'}
+      <div class="catch-body">
+        <div class="catch-species">${esc(c.species)}</div>
+        <div class="catch-meta">
+          ${c.date ? `<span class="csm">📅 ${esc(c.date)}</span>` : ''}
+          ${c.location ? `<span class="csm">📍 ${esc(c.location)}</span>` : ''}
+          ${c.length ? `<span class="csm">📏 ${esc(c.length)}"</span>` : ''}
+          ${c.weight ? `<span class="csm">⚖️ ${esc(c.weight)}lbs</span>` : ''}
+          ${c.lure ? `<span class="csm">🪝 ${esc(c.lure)}</span>` : ''}
+          ${c.technique ? `<span class="csm">${esc(c.technique)}</span>` : ''}
+        </div>
+        ${c.conditions ? `<div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:6px">${esc(c.conditions)}</div>` : ''}
+        ${c.notes ? `<div class="catch-notes">${esc(c.notes)}</div>` : ''}
+        <div class="catch-actions">
+          <button class="btn btn-outline btn-sm" onclick="shareCatch(${c.id})">📤 Share</button>
+          <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="deleteCatch(${c.id})">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderSpots() {
+  const el = document.getElementById('spot-list');
+  if (!spots.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">📍</span>No spots yet.</div>'; return; }
+  el.innerHTML = spots.map(s => `
+    <div class="spot-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div>
+          <div class="spot-name">${esc(s.name)}</div>
+          <div class="spot-type">${esc(s.type || '')}${s.species ? ' · ' + esc(s.species) : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          ${s.address ? `<a href="https://maps.google.com/?q=${encodeURIComponent(s.address)}" target="_blank" class="btn btn-gill btn-sm">🗺️</a>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="deleteSpot(${s.id})">✕</button>
+        </div>
+      </div>
+      ${s.conditions ? `<div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);margin:6px 0">Best: ${esc(s.conditions)}</div>` : ''}
+      ${s.notes ? `<div style="font-size:12px;color:var(--muted);line-height:1.6;font-style:italic;margin-top:4px">${esc(s.notes)}</div>` : ''}
+    </div>`).join('');
+}
+
+function renderGear() {
+  const el = document.getElementById('gear-list');
+  const list = gearFilter === 'all' ? gear : gear.filter(g => g.cat === gearFilter);
+  if (!list.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">🎒</span>No gear in this category.</div>'; return; }
+  el.innerHTML = list.map(g => `
+    <div class="gear-item">
+      <div class="gear-icon">${GICONS[g.cat] || '📦'}</div>
+      <div class="gear-info">
+        <div class="gear-name">${esc(g.name)}</div>
+        ${g.detail ? `<div class="gear-detail">${esc(g.detail)}</div>` : ''}
+        ${g.notes ? `<div class="gear-detail" style="font-style:italic">${esc(g.notes)}</div>` : ''}
+      </div>
+      ${g.loc ? `<div class="gear-loc">📦 ${esc(g.loc)}</div>` : ''}
+      <button class="btn btn-danger btn-sm" onclick="deleteGear(${g.id})" style="margin-left:6px">✕</button>
+    </div>`).join('');
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = catches.length;
+  document.getElementById('stat-species').textContent = new Set(catches.map(c => c.species.toLowerCase().trim())).size;
+  document.getElementById('stat-sessions').textContent = new Set(catches.map(c => c.date)).size;
+}
+
+function renderAll() { renderCatches(); renderSpots(); renderGear(); updateStats(); }
+
+// INIT
+(function() {
+  const d = new Date();
+  document.getElementById('c-date').value = d.toISOString().slice(0, 10);
+  document.getElementById('c-time').value = d.toTimeString().slice(0, 5);
+})();
+
+renderAll();
+
+if (ghToken) {
+  document.getElementById('gh-token-input').placeholder = 'ghp_... (already connected)';
+  setSS('connecting...', 'var(--line)');
+  pullFromGist().then(loaded => { if (loaded) renderAll(); });
+} else {
+  setSS('tap Settings to enable sync', 'var(--muted)');
+}
+</script>
+</body>
+</html>
